@@ -1,0 +1,6 @@
+# Definiciones externas de hardware: conservar CRLF
+bootrom-foxmulator/src/hardware.inc text eol=crlf
+
+# Archivos externos: preservar su formato original
+bootrom-foxmulator/src/hardware.inc -whitespace
+foxmulator-core/resources/bootroms/SAMEBOY-LICENSE.txt -whitespace

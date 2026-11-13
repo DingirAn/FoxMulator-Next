@@ -1,0 +1,130 @@
+
+# ============================================================
+# FoxMulator Next - .gitignore
+# ============================================================
+
+# ------------------------------------------------------------
+# Rust / Cargo
+# ------------------------------------------------------------
+target/
+**/target/
+
+# ------------------------------------------------------------
+# Binarios y distribuciones generadas
+# ------------------------------------------------------------
+*.AppImage
+*.AppImage.zsync
+
+# ------------------------------------------------------------
+# Archivos temporales y copias de seguridad
+# ------------------------------------------------------------
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+*.orig
+*.rej
+
+# ------------------------------------------------------------
+# Registros, trazas y depuración
+# ------------------------------------------------------------
+*.log
+*.trace
+*.profraw
+*.profdata
+
+.debug/
+
+# ------------------------------------------------------------
+# Informes y resultados de pruebas
+# ------------------------------------------------------------
+qa-reports/
+**/qa-reports/
+
+# ------------------------------------------------------------
+# ROMs comerciales y partidas de usuario
+# ------------------------------------------------------------
+*.gb
+*.gbc
+*.gba
+*.sav
+*.srm
+*.state
+*.rtc
+
+test-roms/
+**/test-roms/
+
+# ------------------------------------------------------------
+# Suites de pruebas externas
+# ------------------------------------------------------------
+/gb-test-roms-master/
+
+# ------------------------------------------------------------
+# Código fuente y repositorios externos de referencia
+# ------------------------------------------------------------
+/referencias/
+
+# ------------------------------------------------------------
+# Directorio antiguo de trabajo para BIOS DMG
+# ------------------------------------------------------------
+# La BIOS DMG utilizada por FoxMulator está integrada en:
+# foxmulator-core/resources/bootroms/dmg_boot.bin
+#
+# No versionar el directorio de trabajo completo.
+/bootrom-branding/
+
+# ------------------------------------------------------------
+# BIOS personalizada FoxMulator
+# ------------------------------------------------------------
+# Se conserva bootrom-foxmulator/ con sus fuentes.
+# Se conservan las BIOS integradas en:
+# foxmulator-core/resources/bootroms/
+#
+# NO ignorar *.bin globalmente.
+
+# ------------------------------------------------------------
+# Python
+# ------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# ------------------------------------------------------------
+# Editores y herramientas de desarrollo
+# ------------------------------------------------------------
+.vscode/
+.idea/
+*.code-workspace
+
+# ------------------------------------------------------------
+# Secretos y credenciales
+# ------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+*.pem
+*.key
+
+# ------------------------------------------------------------
+# Archivos del sistema operativo
+# ------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.directory
+
+# ============================================================
+# FIN - FoxMulator Next
+# ============================================================
+
+# Archivos generados de la BIOS
+/bootrom-foxmulator/build/
+
+# Respaldo anterior de la BIOS CGB
+/foxmulator-bootrom-before-refresh-2/

@@ -1,0 +1,36 @@
+[package]
+name = "foxmulator-testrunner"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "blargg-runner"
+path = "src/main.rs"
+
+[[bin]]
+name = "commercial-runner"
+path = "src/commercial.rs"
+
+[[bin]]
+name = "gambatte-runner"
+path = "src/gambatte.rs"
+
+[[bin]]
+name = "audio-benchmark"
+path = "src/audio_benchmark.rs"
+
+[[bin]]
+name = "apu-diagnostic"
+path = "src/apu_diagnostic.rs"
+
+[[bin]]
+name = "qa-runner"
+path = "src/qa.rs"
+
+[[bin]]
+name = "compat-runner"
+path = "src/compat.rs"
+
+[dependencies]
+foxmulator-core = { path = "../foxmulator-core", version = "0.1.0" }

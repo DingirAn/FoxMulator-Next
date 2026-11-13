@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=FoxMulator Next
+Comment=Native Game Boy and Game Boy Color emulator
+Exec=foxmulator
+Icon=foxmulator-next
+Categories=Game;Emulator;
+Terminal=false
+StartupWMClass=foxmulator
+X-GNOME-UsesNotifications=false

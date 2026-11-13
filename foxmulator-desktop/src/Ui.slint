@@ -1,0 +1,766 @@
+// FoxMulator Next native interface.
+// The visual language follows FoxMulator_1.0.1_Link_Dual.html while keeping
+// rendering, input and emulator state in Rust + Slint.
+
+import { Slider, ListView, ComboBox, ScrollView, ProgressIndicator } from "std-widgets.slint";
+
+component ActionButton inherits Rectangle {
+    in property <string> label;
+    in property <color> fill: #343a52;
+    in property <bool> enabled: true;
+    callback clicked();
+    height: 32px;
+    border-radius: 10px;
+    background: root.enabled ? fill : #202737;
+    border-width: 1px;
+    border-color: #596582;
+    if root.enabled: TouchArea { clicked => { root.clicked(); } }
+    Text { text: root.label; color: #eef1ff; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
+}
+
+component SaveSlotCell inherits Rectangle {
+    in property <int> slot-index;
+    in property <string> label;
+    in property <bool> occupied;
+    in property <bool> selected;
+    callback clicked();
+    horizontal-stretch: 1;
+    min-width: 0px;
+    height: 28px;
+    border-radius: 6px;
+    background: root.selected ? #5b4378 : (root.occupied ? #183c2d : #242b35);
+    border-width: 1px;
+    border-color: root.selected ? #8e72b6 : (root.occupied ? #3f8b62 : #596482);
+    TouchArea { clicked => { root.clicked(); } }
+    Rectangle {
+        x: 8px;
+        y: (parent.height - 8px) / 2;
+        width: 8px;
+        height: 8px;
+        border-radius: 4px;
+        background: root.occupied ? #65c98b : #8a909c;
+        border-width: 1px;
+        border-color: root.occupied ? #91e0ad : #b0b5bf;
+    }
+    Text {
+        x: 22px;
+        width: parent.width - 28px;
+        text: root.label;
+        color: #dbe2f5;
+        font-size: 10px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component ToggleBox inherits Rectangle {
+    in property <string> label;
+    in property <bool> checked;
+    callback toggled();
+    height: 34px;
+    background: transparent;
+    HorizontalLayout {
+        spacing: 9px;
+        Rectangle { width: 22px; height: 22px; border-radius: 5px; background: root.checked ? #bc9ef3 : #202a40; border-width: 1px; border-color: #8f9bb8; Text { text: root.checked ? "✓" : ""; color: #111728; font-size: 16px; horizontal-alignment: center; vertical-alignment: center; } }
+        Text { text: root.label; color: #e4e9f8; font-size: 12px; vertical-alignment: center; }
+    }
+    TouchArea { clicked => { root.toggled(); } }
+}
+
+component DPad inherits Rectangle {
+    in property <int> console-id;
+    callback pressed(string);
+    callback released(string);
+    // Direct port of `.dpad`: 3 columns × 54 px and 3 rows × 50 px.
+    width: 162px;
+    height: 150px;
+    background: transparent;
+
+    Rectangle { x: 54px; y: 3px; width: 54px; height: 50px; border-radius: 8px; background: #101523; }
+    Rectangle { x: 0px; y: 53px; width: 54px; height: 50px; border-radius: 8px; background: #101523; }
+    Rectangle { x: 108px; y: 53px; width: 54px; height: 50px; border-radius: 8px; background: #101523; }
+    Rectangle { x: 54px; y: 103px; width: 54px; height: 50px; border-radius: 8px; background: #101523; }
+    Rectangle {
+        x: 54px; y: 0px; width: 54px; height: 50px; border-radius: 8px; background: up.pressed ? #bc9ef3 : #39465d; border-width: 1px; border-color: #56627c;
+        Text { text: "▲"; color: up.pressed ? #111728 : #fff; font-size: 26px; horizontal-alignment: center; vertical-alignment: center; }
+        up := TouchArea { pointer-event(event) => { if event.kind == PointerEventKind.down { root.pressed("up"); } else if event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel { root.released("up"); } } }
+    }
+    Rectangle {
+        x: 0px; y: 50px; width: 54px; height: 50px; border-radius: 8px; background: left.pressed ? #bc9ef3 : #39465d; border-width: 1px; border-color: #56627c;
+        Text { text: "◀"; color: left.pressed ? #111728 : #fff; font-size: 26px; horizontal-alignment: center; vertical-alignment: center; }
+        left := TouchArea { pointer-event(event) => { if event.kind == PointerEventKind.down { root.pressed("left"); } else if event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel { root.released("left"); } } }
+    }
+    Rectangle {
+        x: 108px; y: 50px; width: 54px; height: 50px; border-radius: 8px; background: right.pressed ? #bc9ef3 : #39465d; border-width: 1px; border-color: #56627c;
+        Text { text: "▶"; color: right.pressed ? #111728 : #fff; font-size: 26px; horizontal-alignment: center; vertical-alignment: center; }
+        right := TouchArea { pointer-event(event) => { if event.kind == PointerEventKind.down { root.pressed("right"); } else if event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel { root.released("right"); } } }
+    }
+    Rectangle {
+        x: 54px; y: 100px; width: 54px; height: 50px; border-radius: 8px; background: down.pressed ? #bc9ef3 : #39465d; border-width: 1px; border-color: #56627c;
+        Text { text: "▼"; color: down.pressed ? #111728 : #fff; font-size: 26px; horizontal-alignment: center; vertical-alignment: center; }
+        down := TouchArea { pointer-event(event) => { if event.kind == PointerEventKind.down { root.pressed("down"); } else if event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel { root.released("down"); } } }
+    }
+    Rectangle { x: 54px; y: 50px; width: 54px; height: 50px; border-radius: 7px; background: #263149; border-width: 1px; border-color: #48546c; Text { text: "+"; color: #8795b7; font-size: 22px; font-weight: 800; horizontal-alignment: center; vertical-alignment: center; } }
+}
+
+component GameBoyConsole inherits Rectangle {
+    in property <int> console-id;
+    in property <string> cart;
+    in property <string> state;
+    in property <image> frame;
+    in property <bool> grid-enabled;
+    in property <bool> controls-visible;
+    in property <bool> translucent;
+    in property <int> translucent-tint: 60;
+    // The selected integer scale controls the complete console presentation.
+    // The native window minimum remains 2×, while larger scales are preferred.
+    private property <int> interface-scale: root.effective-screen-scale;
+    private property <int> minimum-interface-scale: 2;
+    in property <int> screen-scale: 2;
+    in property <int> effective-screen-scale: 2;
+    in property <bool> boost-active: false;
+    in property <string> boost-label: ">>";
+    in property <string> app_no_cartridge: "NO CARTRIDGE";
+    in property <string> footer-tagline;
+    in property <string> control-select: "SELECT";
+    in property <string> control-start: "START";
+    in property <color> shell: #6256b5;
+    in property <color> trim: #b6a5ff;
+    callback button-pressed(string);
+    callback button-released(string);
+    callback reset();
+    callback save-state();
+    callback load-state();
+    callback open-settings();
+    callback toggle-library-panel();
+    callback toggle-boost();
+
+    // Keep the LCD integer-scaled while reserving the physical control area.
+    preferred-width: max(160px * root.interface-scale + 24px, 356px);
+    min-width: 356px;
+    // The shell owns the available column. Its fixed-size bezel/LCD remain
+    // centered while the outer frame and controls use the extra width.
+    horizontal-stretch: 1;
+    // The 2× native minimum is enforced by Rust; this component also remains
+    // usable when Slint lays it out between its minimum and preferred size.
+    preferred-height: 144px * root.interface-scale + (root.controls-visible ? 334px : 163px);
+    min-height: 144px * root.minimum-interface-scale + (root.controls-visible ? 334px : 163px);
+    background: shell;
+    border-radius: 28px;
+    border-width: 1px;
+    border-color: trim;
+    drop-shadow-offset-y: 22px;
+    drop-shadow-blur: 52px;
+    drop-shadow-color: #00000075;
+    inner-shadow-offset-y: -4px;
+    inner-shadow-blur: 15px;
+    inner-shadow-color: #06071940;
+
+    // `.shell`: shell remains the user-selected base; translucent gradients
+    // are painted above it so palette selection is never replaced.
+    Rectangle {
+        width: parent.width; height: parent.height; border-radius: 27px;
+        background: @linear-gradient(145deg, #ffffff22, #ffffff00 32%, #0508168c 100%);
+    }
+    Rectangle {
+        x: 5px; y: 5px; width: parent.width - 10px; height: parent.height - 10px;
+        border-radius: 24px; background: @linear-gradient(118deg, #ffffff22, #ffffff00 22%, #ffffff00 70%, #ffffff0a 100%);
+        border-width: 1px; border-color: #ffffff1c;
+        inner-shadow-offset-y: 2px; inner-shadow-blur: 1px; inner-shadow-color: #ffffff6b;
+    }
+    if root.translucent: Rectangle {
+        width: parent.width; height: parent.height; border-radius: 27px;
+        background: @linear-gradient(120deg, #ffffff38, #ffffff06 36%, #08051752 97%);
+    }
+    if root.translucent: Rectangle {
+        x: 34px; y: parent.height - 210px; width: parent.width - 68px; height: 174px;
+        border-radius: 13px; background: root.translucent-tint > 60 ? #16445f88 : #14334866; border-width: 1px; border-color: #b5f4d455;
+        Rectangle { x: 18px; y: 24px; width: 54px; height: 43px; border-radius: 3px; background: #112b38cc; border-width: 1px; border-color: #a8f2d077; }
+        Rectangle { x: parent.width - 90px; y: 91px; width: 67px; height: 58px; border-radius: 3px; background: #112b38cc; border-width: 1px; border-color: #a8f2d077; }
+        Rectangle { x: parent.width / 2 - 12px; y: 28px; width: 22px; height: 25px; background: #142e37; border-width: 2px; border-color: #b4f6ce88; }
+        Rectangle { x: parent.width / 2 + 26px; y: parent.height - 38px; width: 22px; height: 25px; background: #142e37; border-width: 2px; border-color: #b4f6ce88; }
+        Rectangle { x: parent.width - 42px; y: 16px; width: 22px; height: 25px; background: #142e37; border-width: 2px; border-color: #b4f6ce88; }
+        for line in 9: Rectangle { x: 12px + line * 27px; y: 10px; width: 1px; height: parent.height - 20px; background: #9af4de30; }
+        for line in 7: Rectangle { x: 8px; y: 14px + line * 24px; width: parent.width - 16px; height: 1px; background: #9af4de24; }
+        for via in 9: Rectangle { x: 18px + via * 25px; y: 83px + Math.mod(via, 2) * 31px; width: 5px; height: 5px; border-radius: 3px; background: #b5f4d499; }
+    }
+    Rectangle {
+        // Master composition: bezel, controls, and footnote share this shell.
+        width: parent.width;
+        height: parent.height;
+        background: transparent;
+        // Equivalent to HTML `.screenbezel`: toolbar, LCD and bezel-footer
+        // are one physical frame, not separate application-level rows.
+        Rectangle {
+            x: 12px;
+            y: 16px;
+            width: parent.width - 24px;
+            height: 144px * root.interface-scale + 102px;
+            background: #10141c;
+            border-radius: 15px;
+            border-width: 1px;
+            border-color: #d0d3ec2e;
+            Rectangle {
+                width: parent.width;
+                height: parent.height;
+                background: transparent;
+                HorizontalLayout {
+                    x: 11px; y: 11px; width: parent.width - 22px;
+                    height: 35px;
+                     Rectangle { width: 7px; height: 7px; border-radius: 4px; background: root.state != root.app_no_cartridge ? #e65c88 : #7e879d; }
+                    Text { text: root.console-id == 1 ? "POWER" : "POWER · B"; color: #97a8c8; font-size: 9px; font-weight: 700; letter-spacing: 1px; vertical-alignment: center; }
+                    Rectangle { horizontal-stretch: 1; background: transparent; }
+                    Rectangle { width: 33px; height: 33px; border-radius: 9px; background: #ffffff10; border-width: 1px; border-color: #bac4e53d; Text { text: "↓"; color: #dce2ef; font-size: 18px; horizontal-alignment: center; vertical-alignment: center; } TouchArea { clicked => { root.save-state(); } } }
+                    Rectangle { width: 33px; height: 33px; border-radius: 9px; background: root.boost-active ? #6256b5 : #ffffff10; border-width: 1px; border-color: #bac4e53d; Text { text: root.boost-active ? root.boost-label : ">>"; color: #dce2ef; font-size: 12px; horizontal-alignment: center; vertical-alignment: center; } TouchArea { clicked => { root.toggle-boost(); } } }
+                    Rectangle { width: 33px; height: 33px; border-radius: 9px; background: #ffffff10; border-width: 1px; border-color: #bac4e53d; Text { text: "↻"; color: #dce2ef; font-size: 18px; horizontal-alignment: center; vertical-alignment: center; } TouchArea { clicked => { root.load-state(); } } }
+                    Rectangle { width: 33px; height: 33px; border-radius: 9px; background: #ffffff10; border-width: 1px; border-color: #bac4e53d; Text { text: "⋮"; color: #dce2ef; font-size: 21px; horizontal-alignment: center; vertical-alignment: center; } TouchArea { clicked => { root.open-settings(); } } }
+                    Rectangle { width: 33px; height: 33px; border-radius: 9px; background: #ffffff10; border-width: 1px; border-color: #bac4e53d; Text { text: "▦"; color: #dce2ef; font-size: 17px; horizontal-alignment: center; vertical-alignment: center; } TouchArea { clicked => { root.toggle-library-panel(); } } }
+                }
+                Rectangle {
+                    x: 12px; y: 53px;
+                    // The well expands with the shell; the framebuffer below
+                    // remains fixed-size and centered at the selected scale.
+                    width: parent.width - 24px;
+                    height: 144px * root.interface-scale;
+                    background: #020707;
+                    border-radius: 0px;
+                     if root.state != root.app_no_cartridge: Image {
+                        width: 160px * root.effective-screen-scale;
+                        height: 144px * root.effective-screen-scale;
+                        source: root.frame;
+                        image-fit: fill;
+                        image-rendering: pixelated;
+                        x: (parent.width - self.width) / 2;
+                        y: (parent.height - self.height) / 2;
+                    }
+                     if root.grid-enabled && root.effective-screen-scale >= 3: Rectangle {
+                        x: (parent.width - self.width) / 2;
+                        y: (parent.height - self.height) / 2;
+                        width: 160px * root.effective-screen-scale;
+                        height: 144px * root.effective-screen-scale;
+                        background: transparent;
+                         for x in 161: Rectangle { x: x * root.effective-screen-scale * 1px; width: 1px; height: parent.height; background: #10141c45; }
+                         for y in 145: Rectangle { y: y * root.effective-screen-scale * 1px; width: parent.width; height: 1px; background: #10141c45; }
+                    }
+                     if root.state == root.app_no_cartridge: Rectangle {
+                        x: 8px; y: 8px; width: parent.width - 16px; height: parent.height - 16px;
+                        background: #aeb9a6; border-width: 1px; border-color: #d4ddce;
+                         Text { text: root.app_no_cartridge; color: #68756c; font-size: 10px; letter-spacing: 1px; horizontal-alignment: center; vertical-alignment: center; }
+                    }
+                }
+                HorizontalLayout {
+                    x: 4px; y: 144px * root.interface-scale + 62px; width: parent.width - 8px;
+                    height: 30px;
+                    Text { text: "Fox"; color: #e8e7ef; font-size: 17px; font-weight: 900; font-italic: true; letter-spacing: -1px; vertical-alignment: center; }
+                    Text { text: "Mulator"; color: #bc9ef3; font-size: 17px; font-weight: 900; font-italic: true; letter-spacing: -1px; vertical-alignment: center; }
+                    Rectangle { width: 4px; background: transparent; }
+                    Text { text: "Next"; color: #e8e7ef; font-size: 13px; font-weight: 800; font-italic: true; letter-spacing: -1px; vertical-alignment: center; }
+                    Rectangle { width: 6px; background: transparent; }
+                    Rectangle {
+                        width: 39px; height: 14px;
+                        // `.brand-spectrum`: every bar shares the lower baseline.
+                        Rectangle { x: 0px; y: 6px; width: 5px; height: 8px; background: #ff649a; }
+                        Rectangle { x: 7px; y: 3px; width: 5px; height: 11px; background: #ffba58; }
+                        Rectangle { x: 14px; y: 7px; width: 5px; height: 7px; background: #f4e66b; }
+                        Rectangle { x: 21px; y: 4px; width: 5px; height: 10px; background: #64e4ab; }
+                        Rectangle { x: 28px; y: 6px; width: 5px; height: 8px; background: #75b3fa; }
+                    }
+                    Rectangle { horizontal-stretch: 1; background: transparent; }
+                    Text { text: root.console-id == 1 ? "POCKET SYSTEM" : "LINK · B"; color: #8392ad; font-size: 9px; font-weight: 650; letter-spacing: 1px; horizontal-alignment: right; vertical-alignment: center; }
+                }
+            }
+        }
+        if root.controls-visible: Rectangle {
+            x: 16px;
+            y: 144px * root.interface-scale + 126px;
+            width: parent.width - 32px;
+            height: 168px;
+            background: transparent;
+            DPad { x: 6px; y: 9px; pressed(button) => { root.button-pressed(button); } released(button) => { root.button-released(button); } }
+            // `.right-control`, `.action-buttons` (-16deg), and `.option-buttons` (-12deg).
+            Rectangle {
+                x: parent.width - 156px; y: 8px; width: 150px; height: 152px; background: transparent;
+                Rectangle { x: 0px; y: 0px; width: 150px; height: 84px; background: transparent; transform-rotation: -16deg;
+                    Rectangle { x: 0px; y: 16px; width: 67px; height: 67px; border-radius: 34px; background: b.pressed ? #fff : #df6e9a; border-width: 1px; border-color: #8e3f68; Text { text: "B"; color: b.pressed ? #101728 : #192138; font-size: 23px; font-weight: 800; horizontal-alignment: center; vertical-alignment: center; } b := TouchArea { pointer-event(event) => { if event.kind == PointerEventKind.down { root.button-pressed("b"); } else if event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel { root.button-released("b"); } } } }
+                    Rectangle { x: 82px; y: 0px; width: 67px; height: 67px; border-radius: 34px; background: a.pressed ? #fff : #df6e9a; border-width: 1px; border-color: #8e3f68; Text { text: "A"; color: a.pressed ? #101728 : #192138; font-size: 23px; font-weight: 800; horizontal-alignment: center; vertical-alignment: center; } a := TouchArea { pointer-event(event) => { if event.kind == PointerEventKind.down { root.button-pressed("a"); } else if event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel { root.button-released("a"); } } } }
+                }
+                Rectangle { x: 0px; y: 100px; width: 150px; height: 52px; background: transparent; transform-rotation: -12deg;
+                     Rectangle { x: 0px; y: 0px; width: 68px; height: 29px; border-radius: 19px; background: select.pressed ? trim : #343950; border-width: 1px; border-color: #56627c; Text { text: root.control-select; color: #e6e9f7; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; } select := TouchArea { pointer-event(event) => { if event.kind == PointerEventKind.down { root.button-pressed("select"); } else if event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel { root.button-released("select"); } } } }
+                     Rectangle { x: 81px; y: 0px; width: 68px; height: 29px; border-radius: 19px; background: start.pressed ? trim : #343950; border-width: 1px; border-color: #56627c; Text { text: root.control-start; color: #e6e9f7; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; } start := TouchArea { pointer-event(event) => { if event.kind == PointerEventKind.down { root.button-pressed("start"); } else if event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel { root.button-released("start"); } } } }
+                }
+            }
+        }
+        Text {
+            x: 16px;
+            y: root.controls-visible ? 144px * root.interface-scale + 302px : 144px * root.interface-scale + 126px;
+            width: parent.width - 32px;
+            height: 14px;
+             text: root.footer-tagline;
+            color: #dbe0efaa;
+            font-size: 9px;
+            letter-spacing: 1px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+}
+
+export component AppWindow inherits Window {
+    title: "FoxMulator Next";
+    icon: @image-url("../../resources/foxmulator.png");
+    in property <int> layout-min-width: 618;
+    in property <int> layout-min-height: 686;
+    min-width: root.layout-min-width * 1px;
+    min-height: root.layout-min-height * 1px;
+    background: #0d1119;
+
+    in property <image> frame-left;
+    in property <image> frame-right;
+    in property <string> cart-left: "No cartridge";
+    in property <string> cart-right: "No cartridge";
+    in property <string> footer-tagline: "";
+    in property <string> control-select: "SELECT";
+    in property <string> control-start: "START";
+    in property <string> state-left: "No cartridge";
+    in property <string> state-right: "No cartridge";
+    in property <bool> link-enabled: false;
+    in property <bool> lcd-grid-enabled: false;
+    in property <bool> show-virtual-controls: true;
+    in property <bool> library-panel-visible: false;
+    in property <bool> second-console-enabled: false;
+    in property <bool> settings-open: false;
+    in property <bool> auto-scale: true;
+    in property <bool> translucent-shell: true;
+    in property <int> translucent-tint: 60;
+    in property <int> screen-scale: 2;
+    in property <int> effective-screen-scale: 2;
+    in property <bool> boost-active: false;
+    in property <string> boost-label: ">>";
+    in property <string> renderer-selection: "opengl";
+    in property <bool> renderer-pending-restart: false;
+    in property <int> boost-default-speed: 2;
+    in property <string> status: "";
+    in property <string> diagnostics: "";
+    in property <bool> diagnostics-open: false;
+    in property <string> app_no_cartridge: "";
+    in property <string> menu_settings: "";
+    in property <string> menu_language: "";
+    in property <string> section_game_cartridges: "";
+    in property <string> section_save_states: "";
+    in property <string> section_screen: "";
+    in property <string> section_appearance: "";
+    in property <string> section_sound: "";
+    in property <string> section_game_link: "";
+    in property <string> section_controls: "";
+    in property <string> section_advanced: "";
+    in property <string> quick_save: "";
+    in property <string> quick_load: "";
+    in property <string> state_save: "";
+    in property <string> state_load: "";
+    in property <string> state_delete: "";
+    in property <string> state_load_file: "";
+    in property <string> slot_0: "";
+    in property <string> slot_1: "";
+    in property <string> slot_2: "";
+    in property <string> slot_3: "";
+    in property <string> slot_4: "";
+    in property <string> slot_5: "";
+    in property <string> slot_6: "";
+    in property <string> slot_7: "";
+    in property <string> slot_8: "";
+    in property <string> slot_9: "";
+    in property <string> slot_10: "";
+    in property <string> slot_empty: "";
+    in property <string> slot_occupied: "";
+    in property <string> console_one: "";
+    in property <string> console_two: "";
+    in property <string> console_load: "";
+    in property <string> console_reset: "";
+    in property <string> console_eject: "";
+    in property <string> console_pause: "";
+    in property <string> screen_show_controls: "";
+    in property <string> screen_show_second_console: "";
+    in property <string> screen_show_grid: "";
+    in property <string> screen_auto_scale: "";
+    in property <string> screen_scale_label: "";
+    in property <string> render_engine: "";
+    in property <string> render_opengl: "";
+    in property <string> render_software: "";
+    in property <string> render_restart_required: "";
+    in property <string> emulation_speed: "";
+    in property <string> emulation_speed_native: "Nativa";
+    in property <string> emulation_speed_default_boost: "";
+    in property <string> emulation_speed_boost_tooltip: "";
+    in property <string> appearance_change_shell: "";
+    in property <string> appearance_library: "";
+    in property <string> appearance_translucent: "";
+    in property <string> display_tint_intensity: "";
+    in property <string> state_manual_slots: "";
+    in property <string> theme_atomic: "";
+    in property <string> theme_grape: "";
+    in property <string> theme_ice: "";
+    in property <string> theme_ocean: "";
+    in property <string> theme_cherry: "";
+    in property <string> theme_turquoise: "";
+    in property <string> theme_solar: "";
+    in property <string> theme_smoke: "";
+    in property <string> theme_crystal: "";
+    in property <string> theme_graphite: "";
+    in property <string> theme_lime: "";
+    in property <string> appearance_themes: "";
+    in property <string> appearance_custom_color: "";
+    in property <string> appearance_shell: "";
+    in property <string> appearance_accents: "";
+    in property <string> sound_general: "";
+    in property <string> sound_resume: "";
+    in property <string> sound_mute: "";
+    in property <string> sound_description: "";
+    in property <string> link_connected: "";
+    in property <string> link_disconnected: "";
+    in property <string> link_manual_clock: "";
+    in property <string> controls_keys: "";
+    in property <string> controls_quick_save: "";
+    in property <string> controls_quick_load: "";
+    in property <string> controls_instructions: "";
+    in property <string> controls_restore: "";
+    in property <string> advanced_diagnostics: "";
+    in property <string> library_title: "";
+    in property <string> library_search: "";
+    in property <string> library_scan: "";
+    in property <string> library_other_folder: "";
+    in property <string> library_games_label: "";
+    in property <string> library_of: "";
+    in property <string> library_empty: "";
+    in property <string> library_no_results: "";
+    in property <string> library_internal: "";
+    in property <string> library_edit: "";
+    in property <string> library_name: "";
+    in property <string> library_search_name_cover: "";
+    in property <string> library_change_cover: "";
+    in property <string> library_automatic: "";
+    in property <string> library_results: "";
+    in property <string> library_save: "";
+    in property <string> library_cancel: "";
+    in property <string> library_scan_searching: "";
+    in property <string> library_scan_reading_file: "";
+    in property <string> library_scan_inspecting_zip: "";
+    in property <string> library_scan_file_counter: "";
+    in property <string> library_scan_completed: "";
+    in property <string> library_scan_cancel: "";
+    in property <string> library_scan_cancelled: "";
+    in property <string> library_scan_error: "";
+    in property <[string]> language-options: [];
+    in property <int> language-index: 0;
+    in property <color> shell-color: #6256b5;
+    in property <color> accent-color: #b6a5ff;
+    in property <string> shell-color-hex: "#9161b6";
+    in property <string> accent-color-hex: "#d8b4ff";
+    in property <[string]> library-games: [];
+    in property <[string]> library-internals: [];
+    in property <[string]> library-systems: [];
+    in property <[string]> library-ids: [];
+    in property <[image]> library-covers: [];
+    in property <string> library-query: "";
+    in property <int> library-total-count: 0;
+    in property <int> library-filtered-count: 0;
+    in property <bool> library-scan-active: false;
+    in property <bool> library-scan-indeterminate: true;
+    in property <float> library-scan-progress: 0;
+    in property <string> library-scan-status: "";
+    in-out property <bool> library-search-focus-request: false;
+    in property <[string]> recent-games: [];
+    in property <image> selected-cover;
+    in property <bool> library-editor-open: false;
+    in property <string> library-editor-id: "";
+    in property <string> library-editor-internal: "";
+    in-out property <string> library-editor-commercial: "";
+    in-out property <string> library-editor-catalog: "";
+    in property <string> library-editor-system: "";
+    in property <string> library-editor-crc: "";
+    in property <image> library-editor-cover;
+    in property <[string]> library-search-results: [];
+    in-out property <string> control-tab: "Consola 1";
+    in property <string> bindings-console-1: "";
+    in property <string> bindings-console-2: "";
+    in property <bool> left-loaded: false;
+    in property <bool> right-loaded: false;
+    in property <int> master-volume: 100;
+    in property <int> console1-volume: 100;
+    in property <int> console2-volume: 100;
+    in property <bool> console1-muted: false;
+    in property <bool> console2-muted: false;
+    in property <int> save-state-console: 1;
+    in property <int> save-state-selected-slot: 0;
+    in property <[string]> save-state-slots: ["", "", "", "", "", "", "", "", "", "", ""];
+    in property <[bool]> save-state-slot-occupied: [false, false, false, false, false, false, false, false, false, false, false];
+    in property <string> save-state-details: "";
+    in property <bool> save-state-can-load: false;
+    in property <bool> save-state-can-delete: false;
+
+    callback console-button-pressed(int, string);
+    callback console-button-released(int, string);
+    callback open-rom();
+    callback open-rom-for-console(int);
+    callback save-state();
+    callback load-state();
+    callback save-state-for-console(int);
+    callback load-state-for-console(int);
+    callback select-save-state-console(int);
+    callback select-save-state-slot(int);
+    callback save-selected-state();
+    callback load-selected-state();
+    callback delete-selected-state();
+    callback load-state-from-file();
+    callback toggle-pause-console(int);
+    callback toggle-link-cable();
+    callback serial-clock();
+    callback next-shell();
+    callback toggle-pause();
+    callback reset-game();
+    callback reset-console(int);
+    callback eject-console(int);
+    callback set-master-volume(int);
+    callback set-console-volume(int, int);
+    callback toggle-console-mute(int);
+    callback toggle-second-console();
+    callback toggle-virtual-controls();
+    callback toggle-lcd-grid();
+    callback toggle-library-panel();
+    callback toggle-settings();
+    callback release-virtual-inputs();
+    callback release-keyboard-inputs();
+    callback set-screen-scale(int);
+    callback set-renderer(string);
+    callback set-boost-speed(int);
+    callback toggle-boost();
+    callback toggle-auto-scale();
+    callback toggle-translucent-shell();
+    callback adjust-translucent-tint(int);
+    callback toggle-diagnostics();
+    callback set-shell-color(string);
+    callback set-accent-color(string);
+    callback select-theme(int);
+    callback key-input(string, bool);
+    callback select-control-tab(string);
+    callback select-language(string);
+    callback reload-languages();
+    callback begin-rebind(string);
+    callback restore-console1-controls();
+    callback scan-library();
+    callback cancel-library-scan();
+    callback choose-library-folder();
+    callback search-library(string);
+    callback toggle-library-favorite();
+    callback choose-library-cover();
+    callback reset-library-cover();
+    callback edit-library(string);
+    callback search-library-name(string);
+    callback choose-library-result(string);
+    callback save-library-edit();
+    callback cancel-library-edit();
+    callback select-library(string);
+    callback select-library-for-console(string, int);
+
+    keyboard_scope := FocusScope {
+        init => { self.focus(); }
+        focus-lost(_) => { root.release-virtual-inputs(); root.release-keyboard-inputs(); }
+        Rectangle {
+            width: parent.width;
+            height: parent.height;
+            VerticalLayout {
+                width: parent.width;
+                padding: 16px;
+                spacing: 12px;
+                HorizontalLayout {
+                    spacing: 16px;
+                    alignment: center;
+                     GameBoyConsole { app_no_cartridge: root.app_no_cartridge; footer-tagline: root.footer-tagline; control-select: root.control-select; control-start: root.control-start; console-id: 1; cart: root.cart-left; state: root.state-left; frame: root.frame-left; grid-enabled: root.lcd-grid-enabled; controls-visible: root.show-virtual-controls; translucent: root.translucent-shell; translucent-tint: root.translucent-tint; screen-scale: root.screen-scale; effective-screen-scale: root.effective-screen-scale; boost-active: root.boost-active; boost-label: root.boost-label; shell: root.shell-color; trim: root.accent-color; button-pressed(button) => { root.console-button-pressed(1, button); } button-released(button) => { root.console-button-released(1, button); } reset => { root.reset-console(1); } save-state => { root.save-state-for-console(1); } load-state => { root.load-state-for-console(1); } open-settings => { root.toggle-settings(); } toggle-library-panel => { root.toggle-library-panel(); } toggle-boost => { root.toggle-boost(); } }
+                     if root.second-console-enabled: GameBoyConsole { app_no_cartridge: root.app_no_cartridge; footer-tagline: root.footer-tagline; control-select: root.control-select; control-start: root.control-start; console-id: 2; cart: root.cart-right; state: root.state-right; frame: root.frame-right; grid-enabled: root.lcd-grid-enabled; controls-visible: root.show-virtual-controls; translucent: root.translucent-shell; translucent-tint: root.translucent-tint; screen-scale: root.screen-scale; effective-screen-scale: root.effective-screen-scale; boost-active: root.boost-active; boost-label: root.boost-label; shell: #298b92; trim: #9bdbe0; button-pressed(button) => { root.console-button-pressed(2, button); } button-released(button) => { root.console-button-released(2, button); } reset => { root.reset-console(2); } save-state => { root.save-state-for-console(2); } open-settings => { root.toggle-settings(); } toggle-library-panel => { root.toggle-library-panel(); } toggle-boost => { root.toggle-boost(); } }
+                }
+                Text { text: root.status; color: #d8dbfd; font-size: 11px; horizontal-alignment: center; height: 20px; }
+                 }
+        }
+        if root.settings-open: Rectangle {
+            x: parent.width > 456px ? parent.width - 440px : 16px; y: 62px; width: parent.width > 456px ? 420px : parent.width - 32px; height: parent.height - 78px; background: #1c2538; border-radius: 16px; border-width: 1px; border-color: #596482;
+             Text { x: 16px; y: 8px; width: parent.width - 64px; height: 32px; text: "FoxMulator · " + root.menu_settings; color: #edf2ff; font-size: 17px; font-weight: 800; vertical-alignment: center; }
+             ScrollView { x: 0px; y: 48px; width: parent.width; height: parent.height - 48px; vertical-scrollbar-policy: ScrollBarPolicy.as-needed; horizontal-scrollbar-policy: ScrollBarPolicy.as-needed; content-width: self.width; content-height: max(self.height, settings_content.preferred-height + 24px); settings_content := VerticalLayout { width: parent.width - 32px; x: 16px; y: 0px; spacing: 5px;
+                 Text { text: root.menu_language; color: #bc9ef3; font-size: 11px; font-weight: 700; }
+                 HorizontalLayout { height: 32px; spacing: 5px; ComboBox { horizontal-stretch: 1; model: root.language-options; current-index: root.language-index; selected(name) => { root.select-language(name); } } ActionButton { width: 34px; label: "↻"; clicked => { root.reload-languages(); } } }
+                 Text { text: root.section_game_cartridges; color: #bc9ef3; font-size: 11px; font-weight: 700; }
+                Text { text: root.console_one + ": " + root.cart-left; color: #d4dced; font-size: 10px; } Text { text: root.console_two + ": " + root.cart-right; color: #d4dced; font-size: 10px; }
+                HorizontalLayout { ActionButton { label: root.console_one + " · " + root.console_load; clicked => { root.open-rom(); } } ActionButton { label: root.console_one + " · " + root.console_reset; enabled: root.left-loaded; clicked => { root.reset-console(1); } } ActionButton { label: root.console_one + " · " + root.console_eject; enabled: root.left-loaded; clicked => { root.eject-console(1); } } }
+                HorizontalLayout { ActionButton { label: root.console_two + " · " + root.console_load; clicked => { root.open-rom-for-console(2); } } ActionButton { label: root.console_two + " · " + root.console_reset; enabled: root.right-loaded; clicked => { root.reset-console(2); } } ActionButton { label: root.console_two + " · " + root.console_eject; enabled: root.right-loaded; clicked => { root.eject-console(2); } } }
+                HorizontalLayout { ActionButton { label: root.console_one + " · " + root.state_save; clicked => { root.save-state-for-console(1); } } ActionButton { label: root.console_one + " · " + root.state_load; clicked => { root.load-state-for-console(1); } } ActionButton { label: root.console_one + " · " + root.console_pause; clicked => { root.toggle-pause-console(1); } } }
+                HorizontalLayout { ActionButton { label: root.console_two + " · " + root.state_save; clicked => { root.save-state-for-console(2); } } ActionButton { label: root.console_two + " · " + root.state_load; clicked => { root.load-state-for-console(2); } } ActionButton { label: root.console_two + " · " + root.console_pause; clicked => { root.toggle-pause-console(2); } } }
+                 Text { text: root.section_save_states; color: #bc9ef3; font-size: 11px; font-weight: 700; }
+                 HorizontalLayout { height: 30px; ActionButton { label: root.console_one; enabled: root.save-state-console != 1; clicked => { root.select-save-state-console(1); } } ActionButton { label: root.console_two; enabled: root.save-state-console != 2; clicked => { root.select-save-state-console(2); } } }
+                Text { text: root.save-state-console == 1 ? root.cart-left : root.cart-right; color: #dbe2f5; font-size: 10px; overflow: TextOverflow.elide; }
+                Rectangle {
+                    height: 42px;
+                    background: root.save-state-selected-slot == 0 ? #5b4378 : (root.save-state-slot-occupied[0] ? #183c2d : #242b35);
+                    border-radius: 7px;
+                    border-width: 1px;
+                    border-color: root.save-state-selected-slot == 0 ? #8e72b6 : (root.save-state-slot-occupied[0] ? #3f8b62 : #596482);
+                    TouchArea { clicked => { root.select-save-state-slot(0); } }
+                    Rectangle {
+                        x: 8px;
+                        y: 17px;
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 4px;
+                        background: root.save-state-slot-occupied[0] ? #65c98b : #8a909c;
+                        border-width: 1px;
+                        border-color: root.save-state-slot-occupied[0] ? #91e0ad : #b0b5bf;
+                    }
+                     Text { x: 22px; y: 3px; text: root.slot_0; color: #f0e9ff; font-size: 11px; }
+                     Text { x: 22px; y: 20px; text: root.save-state-slot-occupied[0] ? root.slot_occupied : root.slot_empty; color: #cbd5eb; font-size: 9px; }
+                }
+                if parent.width > 310px: HorizontalLayout {
+                     Text { text: root.state_manual_slots; color: #bc9ef3; font-size: 10px; font-weight: 700; vertical-alignment: center; }
+                    Rectangle { horizontal-stretch: 1; }
+                    HorizontalLayout {
+                        spacing: 4px;
+                        Rectangle { width: 8px; height: 8px; border-radius: 4px; background: #8a909c; border-width: 1px; border-color: #b0b5bf; }
+                         Text { text: root.slot_empty; color: #cbd1dc; font-size: 9px; vertical-alignment: center; }
+                        Rectangle { width: 8px; height: 8px; border-radius: 4px; background: #65c98b; border-width: 1px; border-color: #91e0ad; }
+                         Text { text: root.slot_occupied; color: #cbd1dc; font-size: 9px; vertical-alignment: center; }
+                    }
+                }
+                if parent.width <= 310px: VerticalLayout {
+                     Text { text: root.state_manual_slots; color: #bc9ef3; font-size: 10px; font-weight: 700; }
+                    HorizontalLayout {
+                        alignment: end;
+                        spacing: 4px;
+                        Rectangle { width: 8px; height: 8px; border-radius: 4px; background: #8a909c; border-width: 1px; border-color: #b0b5bf; }
+                         Text { text: root.slot_empty; color: #cbd1dc; font-size: 9px; vertical-alignment: center; }
+                        Rectangle { width: 8px; height: 8px; border-radius: 4px; background: #65c98b; border-width: 1px; border-color: #91e0ad; }
+                         Text { text: root.slot_occupied; color: #cbd1dc; font-size: 9px; vertical-alignment: center; }
+                    }
+                }
+                  HorizontalLayout { spacing: 5px; SaveSlotCell { slot-index: 1; label: root.slot_1; occupied: root.save-state-slot-occupied[1]; selected: root.save-state-selected-slot == 1; clicked => { root.select-save-state-slot(1); } } SaveSlotCell { slot-index: 2; label: root.slot_2; occupied: root.save-state-slot-occupied[2]; selected: root.save-state-selected-slot == 2; clicked => { root.select-save-state-slot(2); } } SaveSlotCell { slot-index: 3; label: root.slot_3; occupied: root.save-state-slot-occupied[3]; selected: root.save-state-selected-slot == 3; clicked => { root.select-save-state-slot(3); } } SaveSlotCell { slot-index: 4; label: root.slot_4; occupied: root.save-state-slot-occupied[4]; selected: root.save-state-selected-slot == 4; clicked => { root.select-save-state-slot(4); } } SaveSlotCell { slot-index: 5; label: root.slot_5; occupied: root.save-state-slot-occupied[5]; selected: root.save-state-selected-slot == 5; clicked => { root.select-save-state-slot(5); } } }
+                 HorizontalLayout { spacing: 5px; SaveSlotCell { slot-index: 6; label: root.slot_6; occupied: root.save-state-slot-occupied[6]; selected: root.save-state-selected-slot == 6; clicked => { root.select-save-state-slot(6); } } SaveSlotCell { slot-index: 7; label: root.slot_7; occupied: root.save-state-slot-occupied[7]; selected: root.save-state-selected-slot == 7; clicked => { root.select-save-state-slot(7); } } SaveSlotCell { slot-index: 8; label: root.slot_8; occupied: root.save-state-slot-occupied[8]; selected: root.save-state-selected-slot == 8; clicked => { root.select-save-state-slot(8); } } SaveSlotCell { slot-index: 9; label: root.slot_9; occupied: root.save-state-slot-occupied[9]; selected: root.save-state-selected-slot == 9; clicked => { root.select-save-state-slot(9); } } SaveSlotCell { slot-index: 10; label: root.slot_10; occupied: root.save-state-slot-occupied[10]; selected: root.save-state-selected-slot == 10; clicked => { root.select-save-state-slot(10); } } }
+                Rectangle { height: 50px; background: #182238; border-radius: 7px; Text { x: 10px; y: 5px; width: parent.width - 20px; text: root.save-state-details; color: #cbd5eb; font-size: 9px; wrap: word-wrap; } }
+                 HorizontalLayout { height: 32px; spacing: 6px; ActionButton { horizontal-stretch: 1; label: root.state_save; clicked => { root.save-selected-state(); } } ActionButton { horizontal-stretch: 1; label: root.state_load; enabled: root.save-state-can-load; clicked => { root.load-selected-state(); } } ActionButton { horizontal-stretch: 1; label: root.state_delete; enabled: root.save-state-can-delete; clicked => { root.delete-selected-state(); } } }
+                 ActionButton { label: root.state_load_file; clicked => { root.load-state-from-file(); } }
+                 Text { text: root.section_screen; color: #bc9ef3; font-size: 11px; font-weight: 700; }
+                 ToggleBox { label: root.screen_show_controls; checked: root.show-virtual-controls; toggled => { root.toggle-virtual-controls(); } }
+                 ToggleBox { label: root.screen_show_second_console; checked: root.second-console-enabled; toggled => { root.toggle-second-console(); } }
+                 ToggleBox { label: root.screen_show_grid; checked: root.lcd-grid-enabled; toggled => { root.toggle-lcd-grid(); } }
+                 ToggleBox { label: root.screen_auto_scale; checked: root.auto-scale; toggled => { root.toggle-auto-scale(); } }
+                  HorizontalLayout { Text { text: root.screen_scale_label; color: #d4dced; vertical-alignment: center; } for scale in [1, 2, 3, 4, 5]: ActionButton { label: scale + "×"; fill: root.screen-scale == scale ? #6256b5 : #343a52; clicked => { root.set-screen-scale(scale); } } }
+                  Text { text: root.render_engine; color: #d4dced; font-size: 11px; }
+                  HorizontalLayout { spacing: 6px; ActionButton { label: root.renderer-selection == "opengl" ? "✓ " + root.render_opengl : root.render_opengl; fill: root.renderer-selection == "opengl" ? #3f8b62 : #343a52; clicked => { root.set-renderer("opengl"); } } ActionButton { label: root.renderer-selection == "software" ? "✓ " + root.render_software : root.render_software; fill: root.renderer-selection == "software" ? #3f8b62 : #343a52; clicked => { root.set-renderer("software"); } } }
+                  if root.renderer-pending-restart: Text { text: root.render_restart_required; color: #e6c15a; font-size: 10px; wrap: word-wrap; }
+                  Text { text: root.emulation_speed; color: #d4dced; font-size: 11px; }
+                  HorizontalLayout { spacing: 4px; for speed in [1, 2, 3, 4]: ActionButton { label: (speed == 1 ? root.emulation_speed_native : speed + "×") + (root.boost-default-speed == speed ? " ✓" : ""); fill: root.boost-default-speed == speed ? #3f8b62 : #343a52; clicked => { root.set-boost-speed(speed); } } }
+                 Text { text: root.section_appearance; color: #bc9ef3; font-size: 11px; font-weight: 700; }
+                 HorizontalLayout { ActionButton { label: root.appearance_change_shell; clicked => { root.next-shell(); } } ActionButton { label: root.appearance_library; clicked => { root.toggle-library-panel(); root.toggle-settings(); } } }
+                 ToggleBox { label: root.appearance_translucent; checked: root.translucent-shell; toggled => { root.toggle-translucent-shell(); } }
+                  HorizontalLayout { Text { text: root.display_tint_intensity; color: #d4dced; font-size: 10px; vertical-alignment: center; } ActionButton { label: "−"; width: 38px; clicked => { root.adjust-translucent-tint(-5); } } ActionButton { label: "+"; width: 38px; clicked => { root.adjust-translucent-tint(5); } } }
+                 Text { text: root.appearance_themes; color: #bc9ef3; font-size: 11px; font-weight: 700; }
+                 HorizontalLayout { ActionButton { label: root.theme_atomic; clicked => { root.select-theme(0); } } ActionButton { label: root.theme_grape; clicked => { root.select-theme(1); } } ActionButton { label: root.theme_ice; clicked => { root.select-theme(2); } } ActionButton { label: root.theme_ocean; clicked => { root.select-theme(3); } } }
+                 HorizontalLayout { ActionButton { label: root.theme_cherry; clicked => { root.select-theme(4); } } ActionButton { label: root.theme_turquoise; clicked => { root.select-theme(5); } } ActionButton { label: root.theme_solar; clicked => { root.select-theme(6); } } ActionButton { label: root.theme_smoke; clicked => { root.select-theme(7); } } }
+                 HorizontalLayout { ActionButton { label: root.theme_crystal; clicked => { root.select-theme(8); } } ActionButton { label: root.theme_graphite; clicked => { root.select-theme(9); } } ActionButton { label: root.theme_lime; clicked => { root.select-theme(10); } } }
+                 Text { text: root.appearance_custom_color; color: #bc9ef3; font-size: 11px; font-weight: 700; }
+                 HorizontalLayout { Text { text: root.appearance_shell; color: #d4dced; vertical-alignment: center; } TextInput { width: 110px; text: root.shell-color-hex; edited => { root.set-shell-color(self.text); } } Text { text: root.appearance_accents; color: #d4dced; vertical-alignment: center; } TextInput { width: 110px; text: root.accent-color-hex; edited => { root.set-accent-color(self.text); } } }
+                 Text { text: root.section_sound; color: #bc9ef3; font-size: 11px; font-weight: 700; }
+                 HorizontalLayout { Text { width: 105px; text: root.sound_general + " " + root.master-volume + "%"; color: #d4dced; font-size: 10px; vertical-alignment: center; } Slider { minimum: 0; maximum: 100; step: 1; value: root.master-volume; changed(value) => { root.set-master-volume(value); } } }
+                 HorizontalLayout { Text { width: 105px; text: root.console_one + " 1 " + root.console1-volume + "%"; color: #d4dced; font-size: 10px; vertical-alignment: center; } Slider { minimum: 0; maximum: 100; step: 1; value: root.console1-volume; changed(value) => { root.set-console-volume(1, value); } } ActionButton { width: 82px; label: root.console1-muted ? root.sound_resume : root.sound_mute; clicked => { root.toggle-console-mute(1); } } }
+                 HorizontalLayout { Text { width: 105px; text: root.console_one + " 2 " + root.console2-volume + "%"; color: #d4dced; font-size: 10px; vertical-alignment: center; } Slider { minimum: 0; maximum: 100; step: 1; enabled: root.right-loaded; value: root.console2-volume; changed(value) => { root.set-console-volume(2, value); } } ActionButton { width: 82px; enabled: root.right-loaded; label: root.console2-muted ? root.sound_resume : root.sound_mute; clicked => { root.toggle-console-mute(2); } } }
+                 Text { text: root.sound_description; color: #aebbd5; font-size: 10px; wrap: word-wrap; }
+                 Text { text: root.section_game_link; color: #bc9ef3; font-size: 11px; font-weight: 700; }
+                 ToggleBox { label: root.link-enabled ? root.link_connected : root.link_disconnected; checked: root.link-enabled; toggled => { root.toggle-link-cable(); } }
+                 ActionButton { label: root.link_manual_clock; clicked => { root.serial-clock(); } }
+                 Text { text: root.section_controls; color: #bc9ef3; font-size: 11px; font-weight: 700; }
+                 Text { text: root.controls_keys + " " + (root.control-tab == "Consola 1" ? "C1 · " + root.bindings-console-1 : "C2 · " + root.bindings-console-2); color: #d4dced; font-size: 10px; wrap: word-wrap; }
+                 HorizontalLayout { ActionButton { label: root.controls_keys + " C1"; clicked => { root.select-control-tab("Consola 1"); } } ActionButton { label: root.controls_keys + " C2"; clicked => { root.select-control-tab("Consola 2"); } } }
+                HorizontalLayout { ActionButton { label: "←"; clicked => { root.begin-rebind(root.control-tab == "Consola 1" ? "1:left" : "2:left"); keyboard_scope.focus(); } } ActionButton { label: "→"; clicked => { root.begin-rebind(root.control-tab == "Consola 1" ? "1:right" : "2:right"); keyboard_scope.focus(); } } ActionButton { label: "↑"; clicked => { root.begin-rebind(root.control-tab == "Consola 1" ? "1:up" : "2:up"); keyboard_scope.focus(); } } ActionButton { label: "↓"; clicked => { root.begin-rebind(root.control-tab == "Consola 1" ? "1:down" : "2:down"); keyboard_scope.focus(); } } }
+                 HorizontalLayout { ActionButton { label: "A"; clicked => { root.begin-rebind(root.control-tab == "Consola 1" ? "1:a" : "2:a"); keyboard_scope.focus(); } } ActionButton { label: "B"; clicked => { root.begin-rebind(root.control-tab == "Consola 1" ? "1:b" : "2:b"); keyboard_scope.focus(); } } ActionButton { label: "Select"; clicked => { root.begin-rebind(root.control-tab == "Consola 1" ? "1:select" : "2:select"); keyboard_scope.focus(); } } ActionButton { label: "Start"; clicked => { root.begin-rebind(root.control-tab == "Consola 1" ? "1:start" : "2:start"); keyboard_scope.focus(); } } }
+                 HorizontalLayout { ActionButton { label: root.controls_quick_save; clicked => { root.begin-rebind(root.control-tab == "Consola 1" ? "1:quick-save" : "2:quick-save"); keyboard_scope.focus(); } } ActionButton { label: root.controls_quick_load; clicked => { root.begin-rebind(root.control-tab == "Consola 1" ? "1:quick-load" : "2:quick-load"); keyboard_scope.focus(); } } }
+                 Text { text: root.controls_instructions; color: #aebbd5; font-size: 10px; wrap: word-wrap; }
+                 ActionButton { label: root.controls_restore; clicked => { root.restore-console1-controls(); } }
+                 Text { text: root.section_advanced; color: #bc9ef3; font-size: 11px; font-weight: 700; }
+                 ToggleBox { label: root.advanced_diagnostics; checked: root.diagnostics-open; toggled => { root.toggle-diagnostics(); } }
+                if root.diagnostics-open: Text { text: root.diagnostics; color: #aebbd5; font-size: 10px; wrap: word-wrap; }
+                 Rectangle { height: 32px; background: transparent; }
+             } }
+             Rectangle { x: parent.width - 40px; y: 8px; width: 32px; height: 32px; border-radius: 10px; background: #293753; Text { text: "×"; color: #fff; font-size: 20px; horizontal-alignment: center; vertical-alignment: center; } TouchArea { clicked => { root.toggle-settings(); } } }
+        }
+        if root.library-panel-visible: Rectangle {
+            x: 10px; y: 10px; width: parent.width - 20px; height: parent.height - 20px;
+            background: #050811d8;
+            TouchArea { clicked => { } }
+            Rectangle {
+                x: 18px; y: 18px; width: parent.width - 36px; height: parent.height - 36px;
+                background: #1c2538; border-radius: 16px; border-width: 1px; border-color: #596482;
+                VerticalLayout {
+                    padding: 14px; spacing: 8px;
+                    HorizontalLayout { height: 30px; Text { text: root.library_title; color: #edf2ff; font-size: 16px; font-weight: 800; vertical-alignment: center; } Rectangle { width: 34px; Text { text: "×"; color: #fff; font-size: 22px; horizontal-alignment: center; vertical-alignment: center; } TouchArea { clicked => { root.toggle-library-panel(); } } } }
+                    HorizontalLayout { height: 34px; spacing: 6px;
+                        Text { width: 22px; text: "⌕"; color: #aebbd5; font-size: 18px; horizontal-alignment: center; vertical-alignment: center; }
+                        search-container := Rectangle { horizontal-stretch: 1; background: #121a2a; border-radius: 6px; border-width: 1px; border-color: #596482;
+                            property <bool> search_focus_request: root.library-search-focus-request;
+                            changed search_focus_request => { if (self.search_focus_request) { library_search_input.focus(); root.library-search-focus-request = false; } }
+                            library_search_input := TextInput { x: 8px; y: 2px; width: parent.width - 16px; height: parent.height - 4px; text: root.library-query; edited => { root.search-library(self.text); } }
+                            if root.library-query == "": Text { x: 10px; y: 0px; width: parent.width - 20px; height: parent.height; text: root.library_search; color: #7382a5; font-size: 11px; vertical-alignment: center; }
+                        }
+                        ActionButton { width: 32px; enabled: root.library-query != ""; label: "×"; clicked => { root.search-library(""); } }
+                        ActionButton { width: 92px; label: root.library_scan; clicked => { root.scan-library(); } }
+                        ActionButton { width: 108px; label: root.library_other_folder; clicked => { root.choose-library-folder(); } }
+                    }
+                    Text { text: root.library-query == "" ? root.library-total-count + " " + root.library_games_label : root.library-filtered-count + " " + root.library_of + " " + root.library-total-count + " " + root.library_games_label; color: #aebbd5; font-size: 10px; }
+                    if root.library-scan-active: Rectangle {
+                        height: 54px; background: #121a2a; border-radius: 7px;
+                        VerticalLayout {
+                            HorizontalLayout { height: 18px; Text { text: root.library-scan-status; color: #dbe2f5; font-size: 10px; vertical-alignment: center; overflow: TextOverflow.elide; } ActionButton { width: 82px; height: 24px; label: root.library_scan_cancel; clicked => { root.cancel-library-scan(); } } }
+                            ProgressIndicator { progress: root.library-scan-progress; indeterminate: root.library-scan-indeterminate; }
+                        }
+                    }
+                    Rectangle { vertical-stretch: 1; clip: true; background: #121a2a; border-radius: 10px;
+                        ListView {
+                            width: parent.width; height: parent.height;
+                            vertical-scrollbar-policy: ScrollBarPolicy.always-on;
+                            horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+                            for game[idx] in root.library-games: Rectangle {
+                                width: parent.width - 12px; height: 120px; x: 6px; y: idx * 124px; background: #293753; border-radius: 9px;
+                                Rectangle { x: 8px; y: 8px; width: 72px; height: 100px; background: #182238; border-radius: 5px; Text { text: "?"; color: #7382a5; font-size: 28px; horizontal-alignment: center; vertical-alignment: center; } Image { width: parent.width; height: parent.height; source: root.library-covers[idx]; image-fit: contain; } }
+                                Text { x: 90px; y: 6px; width: parent.width - 145px; height: 34px; text: game; color: #fff; font-size: 12px; wrap: word-wrap; vertical-alignment: top; }
+                                ActionButton { x: parent.width - 42px; y: 8px; width: 30px; height: 28px; label: "✎"; clicked => { root.edit-library(root.library-ids[idx]); } }
+                                  Text { x: 90px; y: 42px; width: parent.width - 102px; height: 18px; text: root.library-internals[idx]; color: #aebbd5; font-size: 9px; overflow: TextOverflow.elide; }
+                                Text { x: 90px; y: 62px; width: parent.width - 102px; height: 16px; text: root.library-systems[idx]; color: #bc9ef3; font-size: 9px; }
+                                 HorizontalLayout { x: 90px; y: 80px; width: parent.width - 102px; height: 30px; ActionButton { label: root.console_one; clicked => { root.select-library(root.library-ids[idx]); } } ActionButton { label: root.console_two; clicked => { root.select-library-for-console(root.library-ids[idx], 2); } } }
+                            }
+                        }
+                        if root.library-filtered-count == 0: Text { x: 16px; y: 18px; width: parent.width - 32px; text: root.library-query == "" ? root.library_empty : root.library_no_results; color: #aebbd5; font-size: 12px; horizontal-alignment: center; }
+                    }
+                }
+            }
+        }
+        if root.library-editor-open: Rectangle {
+            x: 24px; y: 24px; width: parent.width - 48px; height: parent.height - 48px;
+            background: #111a2beF; border-radius: 14px; border-width: 1px; border-color: #7886ad;
+            TouchArea { clicked => { } }
+            VerticalLayout { padding: 16px; spacing: 8px;
+                 HorizontalLayout { height: 28px; Text { text: root.library_edit; color: #f0f3ff; font-size: 16px; font-weight: 800; } Rectangle { width: 30px; Text { text: "×"; color: #fff; font-size: 21px; horizontal-alignment: center; vertical-alignment: center; } TouchArea { clicked => { root.cancel-library-edit(); } } } }
+                 Text { text: root.library-editor-internal; color: #aebbd5; font-size: 10px; overflow: TextOverflow.elide; }
+                Text { text: root.library-editor-system + " · CRC32 " + root.library-editor-crc; color: #bc9ef3; font-size: 10px; }
+                 HorizontalLayout { height: 34px; Text { text: root.library_name; color: #dbe2f5; vertical-alignment: center; } TextInput { text: root.library-editor-commercial; edited => { root.library-editor-commercial = self.text; root.library-editor-catalog = ""; } } }
+                Rectangle { height: 116px; background: #182238; border-radius: 7px; Text { text: "?"; color: #7382a5; font-size: 28px; horizontal-alignment: center; vertical-alignment: center; } Image { width: parent.width; height: parent.height; source: root.library-editor-cover; image-fit: contain; } }
+                 HorizontalLayout { height: 32px; ActionButton { label: root.library_search_name_cover; clicked => { root.search-library-name(root.library-editor-commercial); } } ActionButton { label: root.library_change_cover; clicked => { root.choose-library-cover(); } } ActionButton { label: root.library_automatic; clicked => { root.reset-library-cover(); } } }
+                 Text { text: root.library_results; color: #bc9ef3; font-size: 10px; }
+                Rectangle { vertical-stretch: 1; clip: true; background: #182238; border-radius: 7px; Flickable { width: parent.width; height: parent.height; content-width: self.width; content-height: root.library-search-results.length * 32px; interactive: true; VerticalLayout { width: parent.width; for result in root.library-search-results: ActionButton { height: 28px; label: result; clicked => { root.choose-library-result(result); } } } } }
+                 HorizontalLayout { height: 32px; ActionButton { label: root.library_save; clicked => { root.save-library-edit(); } } ActionButton { label: root.library_cancel; clicked => { root.cancel-library-edit(); } } }
+            }
+        }
+        key-pressed(event) => {
+            if (root.library-panel-visible && event.modifiers.control && (event.text == "f" || event.text == "F")) {
+                root.library-search-focus-request = true;
+                return accept;
+            }
+            if (event.text == Key.Escape && root.library-panel-visible) { root.toggle-library-panel(); } else { root.key-input(event.text, true); }
+            return accept;
+        }
+        key-released(event) => { root.key-input(event.text, false); return accept; }
+    }
+}

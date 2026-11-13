@@ -1,0 +1,37 @@
+[package]
+name = "foxmulator-desktop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "foxmulator"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true }
+foxmulator-core = { path = "../foxmulator-core", version = "0.1.0" }
+byteorder = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+rand = { workspace = true }
+bytemuck = { workspace = true }
+slint = { version = "1.8", optional = true, default-features = false, features = ["backend-winit", "renderer-software", "renderer-femtovg", "std", "compat-1-18", "unstable-winit-030"] }
+gilrs = { version = "0.10", optional = true, default-features = false, features = ["wgi"] }
+rfd = { version = "0.15", optional = true, default-features = false, features = ["xdg-portal", "tokio"] }
+directories = "5.0"
+quick-xml = "0.41"
+zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
+reqwest = { workspace = true, optional = true }
+
+[build-dependencies]
+slint-build = "1.8"
+
+[features]
+default = []
+gui = ["dep:slint", "dep:rfd", "dep:reqwest"]
+audio = []
+gamepad = ["dep:gilrs"]
+
+[dev-dependencies]
+hex-literal = "0.4"
